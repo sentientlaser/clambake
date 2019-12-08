@@ -1,0 +1,3 @@
+#!/bin/bash
+
+pgrep clamscan | xargs kill 2>/dev/null

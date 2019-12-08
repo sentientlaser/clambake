@@ -1,2 +1,4 @@
 *.clam
 *.flist
+*.error
+out/*
