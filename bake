@@ -5,6 +5,15 @@
 # set -x  ### For debugging
 IFS=$'\n'  ### required for line by lin text processing
 
+function KILLCLAMS {
+  echo "Killing all processess..."
+  pgrep clamscan | xargs kill 2>/dev/null
+  pgrep sfill | xargs kill 2>/dev/null
+}
+
+trap KILLCLAMS EXIT
+trap KILLCLAMS SIGINT
+
 function MESG {
     >&2 echo ": $1"
 }
@@ -116,8 +125,12 @@ function CHECK_CLAM_PROGRESS {
   SCANNING="$(pgrep -a clamscan | grep "$(JOB_GET_MOUNTPOINT)" | wc -l)"
   SCRUBBING="$(pgrep -a sfill | grep "$(JOB_GET_MOUNTPOINT)" | wc -l)"
   if [ "$SCANNING" -gt 0 ]; then
-    local PERCENT_COMPLETE=$(bc <<< "scale=6; $(COUNT_PROCESSED_FILES)/$(COUNT_TOTAL_FILES)*100" | sed -E 's#0+$#0#g')
-    MESG "$(JOB_GET_DEVICE) $(JOB_GET_NAME) -> scan $PERCENT_COMPLETE%                                        "
+    if [ "$(COUNT_TOTAL_FILES)" -eq 0 ]; then
+      MESG "$(JOB_GET_DEVICE) $(JOB_GET_NAME) -> scan empty"
+    else
+      local PERCENT_COMPLETE=$(bc <<< "scale=6; $(COUNT_PROCESSED_FILES)/$(COUNT_TOTAL_FILES)*100" | sed -E 's#0+$#0#g')
+      MESG "$(JOB_GET_DEVICE) $(JOB_GET_NAME) -> scan $PERCENT_COMPLETE%                                        "
+    fi
   elif [ "$SCRUBBING" -gt 0 ]; then
     MESG "$(JOB_GET_DEVICE) $(JOB_GET_NAME) -> scrubbing                                                  "
   else
@@ -177,7 +190,6 @@ function ALERT_DONE {
 }
 
 function PROCESS {
-
   INIT
   START_ALL_CLAMS
   WAIT_WITH_PROGRESS_ON_CLAMS
